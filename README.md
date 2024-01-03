@@ -2,18 +2,18 @@
 
 # Main feature: One peer streams stable video and audio from screen to multiple other peers.
 
-[x] Basic frontend CSS
-[x] Server setup
+- [x] Basic frontend CSS
+- [x] Server setup
 
-[x] User video streaming
-[x] User audio streaming
+- [x] User video streaming
+- [x] User audio streaming
 
-[ ] Multiple peers joing a single "room"
+- [ ] Multiple peers joing a single "room"
 
-[ ] Merging multiple streams
-[ ] Screen video streaming
-[ ] Screen audio streaming
+- [ ] Merging multiple streams
+- [ ] Screen video streaming
+- [ ] Screen audio streaming
 
-[ ] Handling of different streams being active and inactive
+- [ ] Handling of different streams being active and inactive
 
-[ ] Frontend developement
+- [ ] Frontend developement
