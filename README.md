@@ -8,12 +8,15 @@
 - [x] User video streaming
 - [x] User audio streaming
 
+- [ ] Screen video streaming
+- [ ] Screen audio streaming
+
 - [ ] Multiple peers joing a single "room"
 
 - [ ] Merging multiple streams
-- [ ] Screen video streaming
-- [ ] Screen audio streaming
 
 - [ ] Handling of different streams being active and inactive
 
 - [ ] Frontend developement
+
+- [ ] Recieve feedback
