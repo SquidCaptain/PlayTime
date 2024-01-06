@@ -9,7 +9,6 @@ import Peer from "simple-peer"
 import io from "socket.io-client"
 import "./App.css"
 
-const PORT = process.env.PORT || 5000
 const socket = io.connect(`http://localhost:5000`)
 
 function App() {
@@ -21,11 +20,28 @@ function App() {
 	const [ callAccepted, setCallAccepted ] = useState(false)
 	const [ idToCall, setIdToCall ] = useState("")
 	const [ callEnded, setCallEnded] = useState(false)
+	const [ screenStreaming, setScreenStreaming] = useState(false)
 	const [ name, setName ] = useState("")
 
 	const myVideo = useRef()
 	const userVideo = useRef()
-	const connectionRef= useRef()
+	const connectionRef = useRef()
+
+
+	const streamScreen = () => {
+		navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
+			setStream(stream)
+				myVideo.current.srcObject = stream
+		})
+		setScreenStreaming(true)
+	}
+	const streamCam = () => {
+		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+			setStream(stream)
+				myVideo.current.srcObject = stream
+		})
+		setScreenStreaming(false)
+	}
 
 	useEffect(() => {
 		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
@@ -33,7 +49,7 @@ function App() {
 				myVideo.current.srcObject = stream
 		})
 
-	  socket.on("me", (id) => {
+	  	socket.on("me", (id) => {
 			setMe(id)
 		})
 
@@ -60,9 +76,7 @@ function App() {
 			})
 		})
 		peer.on("stream", (stream) => {
-			
-				userVideo.current.srcObject = stream
-			
+			userVideo.current.srcObject = stream
 		})
 		socket.on("callAccepted", (signal) => {
 			setCallAccepted(true)
@@ -98,63 +112,74 @@ function App() {
 	return (
 		<>
 			<h1 style={{ textAlign: "center", color: '#fff' }}>PartyTime</h1>
-		<div className="container">
-			<div className="video-container">
-				<div className="video">
-					{stream &&  <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
-				</div>
-				<div className="video">
-					{callAccepted && !callEnded ?
-					<video playsInline ref={userVideo} autoPlay style={{ width: "300px"}} />:
-					null}
-				</div>
-			</div>
-			<div className="myId">
-				<TextField
-					id="filled-basic"
-					label="Name"
-					variant="filled"
-					value={name}
-					onChange={(e) => setName(e.target.value)}
-					style={{ marginBottom: "20px" }}
-				/>
-				<CopyToClipboard text={me} style={{ marginBottom: "2rem" }}>
-					<Button variant="contained" color="primary" startIcon={<AssignmentIcon fontSize="large" />}>
-						Copy ID
-					</Button>
-				</CopyToClipboard>
-
-				<TextField
-					id="filled-basic"
-					label="ID to call"
-					variant="filled"
-					value={idToCall}
-					onChange={(e) => setIdToCall(e.target.value)}
-				/>
-				<div className="call-button">
-					{callAccepted && !callEnded ? (
-						<Button variant="contained" color="secondary" onClick={leaveCall}>
-							End Call
-						</Button>
-					) : (
-						<IconButton color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-							<PhoneIcon fontSize="large" />
-						</IconButton>
-					)}
-					{idToCall}
-				</div>
-			</div>
-			<div>
-				{receivingCall && !callAccepted ? (
-						<div className="caller">
-						<h1 >{name} is calling...</h1>
-						<Button variant="contained" color="primary" onClick={answerCall}>
-							Answer
-						</Button>
+			<div className="container">
+				<div className="video-container">
+					<div className="video">
+						{stream &&  <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
 					</div>
-				) : null}
+					<div className="video">
+						{callAccepted && !callEnded ?
+						<video playsInline ref={userVideo} autoPlay style={{ width: "300px"}} />:
+						null}
+					</div>
+				</div>
+				<div className="myId">
+					<TextField
+						id="filled-basic"
+						label="Name"
+						variant="filled"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						style={{ marginBottom: "20px" }}
+					/>
+					<CopyToClipboard text={me} style={{ marginBottom: "2rem" }}>
+						<Button variant="contained" color="primary" startIcon={<AssignmentIcon fontSize="large" />}>
+							Copy ID
+						</Button>
+					</CopyToClipboard>
+
+					<TextField
+						id="filled-basic"
+						label="ID to call"
+						variant="filled"
+						value={idToCall}
+						onChange={(e) => setIdToCall(e.target.value)}
+					/>
+					<div className="call-button">
+						{callAccepted && !callEnded ? (
+							<Button variant="contained" color="secondary" onClick={leaveCall}>
+								End Call
+							</Button>
+						) : (
+							<IconButton color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+								<PhoneIcon fontSize="large" />
+							</IconButton>
+						)}
+						{idToCall}
+					</div>
+					<div className="stream-button">
+						{screenStreaming ? (
+							<Button variant="contained" color="secondary" onClick={streamCam}>
+								Stop Stream
+							</Button>
+						) : (
+							<Button variant="contained" color="primary" onClick={streamScreen}>
+								Stream Tab
+							</Button>
+						)}
+					</div>
+				</div>
+				<div>
+					{receivingCall && !callAccepted ? (
+							<div className="caller">
+							<h1 >{name} is calling...</h1>
+							<Button variant="contained" color="primary" onClick={answerCall}>
+								Answer
+							</Button>
+						</div>
+					) : null}
+				</div>
 			</div>
-		</div>
 		</>
 	)
 }

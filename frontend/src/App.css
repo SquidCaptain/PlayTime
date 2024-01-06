@@ -25,6 +25,11 @@
 	margin-top: 2rem;
 }
 
+.stream-button {
+	text-align: center;
+	margin-top: 2rem;
+}
+
 .video-container {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
