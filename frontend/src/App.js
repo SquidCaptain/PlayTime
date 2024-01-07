@@ -14,61 +14,59 @@ const socket = io.connect(`http://localhost:5000`)
 function App() {
 	const [ me, setMe ] = useState("")
 	const [ stream, setStream ] = useState()
-	const [ receivingCall, setReceivingCall ] = useState(false)
+	const [ receivingInvite, setReceivingInvite ] = useState(false)
 	const [ caller, setCaller ] = useState("")
 	const [ callerSignal, setCallerSignal ] = useState()
-	const [ callAccepted, setCallAccepted ] = useState(false)
+	const [ inviteAccepted, setInviteAccepted ] = useState(false)
 	const [ idToCall, setIdToCall ] = useState("")
 	const [ callEnded, setCallEnded] = useState(false)
 	const [ screenStreaming, setScreenStreaming] = useState(false)
+	const [ isHost, setIsHost ] = useState(true)
 	const [ name, setName ] = useState("")
 
-	const myVideo = useRef()
+	const myVideo = useRef(new MediaStream())
 	const userVideo = useRef()
-	const connectionRef = useRef()
-
+	const connectionRef = useRef([])
 
 	const streamScreen = () => {
 		navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
 			setStream(stream)
-				myVideo.current.srcObject = stream
+			myVideo.current.srcObject = stream
 		})
 		setScreenStreaming(true)
 	}
 	const streamCam = () => {
-		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+		/* navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
 			setStream(stream)
 				myVideo.current.srcObject = stream
-		})
-		setScreenStreaming(false)
+		})*/
+		setScreenStreaming(false) 
 	}
 
 	useEffect(() => {
-		navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-			setStream(stream)
-				myVideo.current.srcObject = stream
-		})
 
 	  	socket.on("me", (id) => {
 			setMe(id)
 		})
 
-		socket.on("callUser", (data) => {
-			setReceivingCall(true)
+		socket.on("inviteUser", (data) => {
+			setIsHost(true)
+			setReceivingInvite(true)
 			setCaller(data.from)
 			setName(data.name)
 			setCallerSignal(data.signal)
 		})
 	}, [])
 
-	const callUser = (id) => {
+	const inviteUser = (id) => {
+		setIsHost(true)
 		const peer = new Peer({
 			initiator: true,
 			trickle: false,
 			stream: stream
 		})
 		peer.on("signal", (data) => {
-			socket.emit("callUser", {
+			socket.emit("inviteUser", {
 				userToCall: id,
 				signalData: data,
 				from: me,
@@ -78,35 +76,38 @@ function App() {
 		peer.on("stream", (stream) => {
 			userVideo.current.srcObject = stream
 		})
-		socket.on("callAccepted", (signal) => {
-			setCallAccepted(true)
+		socket.on("inviteAccepted", (signal) => {
+			setInviteAccepted(true)
 			peer.signal(signal)
 		})
 
-		connectionRef.current = peer
+		connectionRef.current.push(peer)
 	}
 
-	const answerCall =() =>  {
-		setCallAccepted(true)
+	const answerInvite =() =>  {
+		setIsHost(false)
+		setInviteAccepted(true)
 		const peer = new Peer({
 			initiator: false,
 			trickle: false,
 			stream: stream
 		})
 		peer.on("signal", (data) => {
-			socket.emit("answerCall", { signal: data, to: caller })
+			socket.emit("answerInvite", { signal: data, to: caller })
 		})
 		peer.on("stream", (stream) => {
 			userVideo.current.srcObject = stream
 		})
 
 		peer.signal(callerSignal)
-		connectionRef.current = peer
+		connectionRef.current.push(peer)
 	}
 
 	const leaveCall = () => {
 		setCallEnded(true)
-		connectionRef.current.destroy()
+		connectionRef.current.map((connections) => connections.destroy())
+		connectionRef.current = []
+		setIsHost(true)
 	}
 
 	return (
@@ -114,44 +115,51 @@ function App() {
 			<h1 style={{ textAlign: "center", color: '#fff' }}>PartyTime</h1>
 			<div className="container">
 				<div className="video-container">
-					<div className="video">
-						{stream &&  <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
-					</div>
-					<div className="video">
-						{callAccepted && !callEnded ?
-						<video playsInline ref={userVideo} autoPlay style={{ width: "300px"}} />:
-						null}
-					</div>
+					{isHost ? (
+						<div className="video">
+							{stream &&  <video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
+						</div>
+					) : (
+						<div className="video">
+							{inviteAccepted && !callEnded ?
+							<video playsInline ref={userVideo} autoPlay style={{ width: "300px"}} />:
+							null}
+						</div>
+					)}
 				</div>
 				<div className="myId">
-					<TextField
-						id="filled-basic"
-						label="Name"
-						variant="filled"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						style={{ marginBottom: "20px" }}
-					/>
-					<CopyToClipboard text={me} style={{ marginBottom: "2rem" }}>
-						<Button variant="contained" color="primary" startIcon={<AssignmentIcon fontSize="large" />}>
-							Copy ID
-						</Button>
-					</CopyToClipboard>
+					{isHost ? (
+						<div>
+							<TextField
+								id="filled-basic"
+								label="Name"
+								variant="filled"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+								style={{ marginBottom: "20px" }}
+							/>
+							<CopyToClipboard text={me} style={{ marginBottom: "2rem" }}>
+								<Button variant="contained" color="primary" startIcon={<AssignmentIcon fontSize="large" />}>
+									Copy ID
+								</Button>
+							</CopyToClipboard>
 
-					<TextField
-						id="filled-basic"
-						label="ID to call"
-						variant="filled"
-						value={idToCall}
-						onChange={(e) => setIdToCall(e.target.value)}
-					/>
+							<TextField
+								id="filled-basic"
+								label="ID to call"
+								variant="filled"
+								value={idToCall}
+								onChange={(e) => setIdToCall(e.target.value)}
+							/>
+						</div>
+					):(<div></div>)}
 					<div className="call-button">
-						{callAccepted && !callEnded ? (
+						{inviteAccepted && !isHost ? (
 							<Button variant="contained" color="secondary" onClick={leaveCall}>
 								End Call
 							</Button>
 						) : (
-							<IconButton color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+							<IconButton color="primary" aria-label="call" onClick={() => inviteUser(idToCall)}>
 								<PhoneIcon fontSize="large" />
 							</IconButton>
 						)}
@@ -168,12 +176,13 @@ function App() {
 							</Button>
 						)}
 					</div>
+				
 				</div>
 				<div>
-					{receivingCall && !callAccepted ? (
+					{receivingInvite && !inviteAccepted ? (
 							<div className="caller">
-							<h1 >{name} is calling...</h1>
-							<Button variant="contained" color="primary" onClick={answerCall}>
+							<h1 >{name} is inviting you...</h1>
+							<Button variant="contained" color="primary" onClick={answerInvite}>
 								Answer
 							</Button>
 						</div>
