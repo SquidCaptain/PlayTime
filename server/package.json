@@ -1,0 +1,18 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/server.js"
+  },
+  "keywords": [],
+  "author": "George Yeh",
+  "license": "ISC",
+  "description": "A streaming web app using webRTC",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  }
+}
